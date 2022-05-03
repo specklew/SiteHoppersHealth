@@ -1,4 +1,8 @@
-var health = 100;
+var health = 50;
+
+chrome.storage.sync.get(["hp"], function(items){
+    health = items.hp;
+});
 
 function scanTabs() {
     chrome.tabs.query({ //This method output active URL 
@@ -11,19 +15,16 @@ function scanTabs() {
             var parser = document.createElement('a');
 
             parser.href = tabs[tab].url;
-            console.log(parser.hostname);
+            console.log(parser.hostname + " hp = " + health);
             if(parser.hostname == 'www.facebook.com'){
                 health -= 1;
+                                
+                chrome.storage.sync.set({ "hp": health }, function(){
+                });
             }
         }
     });
 }
-
-chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
-    if (message.request == "checkHealth") {
-        sendResponse({hp: health});
-    }
-});
 
 chrome.tabs.onActivated.addListener(scanTabs);
 chrome.tabs.onUpdated.addListener(scanTabs);
