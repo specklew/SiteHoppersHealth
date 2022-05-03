@@ -16,5 +16,5 @@
     "permissions": [
         "declarativeContent",
         "tabs",
-        "<all_urls>"]
+        "storage"]
 }
