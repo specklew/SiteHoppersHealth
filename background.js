@@ -6,7 +6,10 @@ function scanTabs() {
         "windowType": "normal"
     }, function (tabs) {
         for (tab in tabs) {
-            console.log(tabs[tab].url);
+            var parser = document.createElement('a');
+
+            parser.href = tabs[tab].url;
+            console.log(parser.hostname);
         }
     });
 }
