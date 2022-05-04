@@ -1,4 +1,4 @@
-var health = null;
+var health;
 var startTime
 var endTime;
 
@@ -6,7 +6,7 @@ chrome.storage.sync.get(["hp"], function(items){
     health = items.hp;
 });
 
-if(health === null){
+if(typeof health == 'undefined'){
     health = 100;
 }
 
