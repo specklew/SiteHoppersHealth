@@ -13,7 +13,7 @@ if(typeof health == 'undefined'){
 //start();
 
 function scanTabs() {
-    chrome.tabs.query({ //This method output active URL 
+    chrome.tabs.query({ //This method output active URL
         "active": true,
         "currentWindow": true,
         "status": "complete",
@@ -24,7 +24,7 @@ function scanTabs() {
 
             parser.href = tabs[tab].url;
             console.log(parser.hostname + " hp = " + health);
-            if(parser.hostname == 'www.facebook.com'){
+            if(parser.hostname === 'www.facebook.com'){
                 health -= 1;
                 //end();
                 //start();
@@ -51,10 +51,10 @@ chrome.tabs.onUpdated.addListener(scanTabs);
 // function end() {
 //     endTime = performance.now();
 //     var timeDiff = endTime - startTime;
-  
+
 //     timeDiff /= 1000; // strip the ms
 //     timeDiff /= 10; // from s to min
-  
+
 //     var minutes = Math.round(timeDiff);
 //     health += minutes;
 // }
