@@ -1,12 +1,10 @@
 {
     "manifest_version": 2,
     "name": "SiteHoppersHealth",
-    "version": "0.1",
-
-    "icons": {"128": "images/128_icon.png"},
-
+    "version": "1.0",
     "description": "A pet that motivates you to abandon distractions once for all!",
-    
+    "icons": {
+        "128": "images/128_icon.png"},
     "background": {
         "scripts": ["background.js"],
         "persistent": false
