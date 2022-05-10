@@ -30,8 +30,6 @@ function scanTabs() {
 //When popup is opened:
 chrome.runtime.onMessage.addListener(function(message, sender, sendResponse){
     if(message.popupOpen) {
-        chrome.storage.sync.get(["time"], function(items){
-            console.log(items.time)});
         syncPointsForTime();
     }
 });
@@ -40,10 +38,12 @@ function syncPointsForTime() {
     chrome.storage.sync.get(["time"], function(items){
         let endTime = Date.now();
         startTime = items.time;
+
         if(startTime === undefined || isNaN(startTime) || startTime < 0){
             chrome.storage.sync.set({ "time": endTime }, function(){});
             return false;
         }
+
         endTime -= startTime;
         let numberOfPoints = endTime / timeInMsForEachPoint;
         numberOfPoints = Math.floor(numberOfPoints);
