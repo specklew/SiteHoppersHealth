@@ -19,10 +19,14 @@ function scanTabs() {
                 console.log(parser.hostname + " hp = " + items.hp);
             });
 
-            if(parser.hostname === 'www.facebook.com'){
-                addHp(-1);
-                syncPointsForTime();
-            }
+            chrome.storage.sync.get(["blacklist"], function(items) {
+                const blackListedWebsites = items.blacklist;
+
+                if(blackListedWebsites.includes(parser.hostname)){
+                    addHp(-1);
+                    syncPointsForTime();
+                }
+            });
         }
     });
 }
@@ -37,7 +41,7 @@ chrome.runtime.onMessage.addListener(function(message, sender, sendResponse){
 function syncPointsForTime() {
     chrome.storage.sync.get(["time"], function(items){
         let endTime = Date.now();
-        startTime = items.time;
+        let startTime = items.time;
 
         if(startTime === undefined || isNaN(startTime) || startTime < 0){
             chrome.storage.sync.set({ "time": endTime }, function(){});
@@ -49,6 +53,7 @@ function syncPointsForTime() {
         numberOfPoints = Math.floor(numberOfPoints);
         endTime = endTime - timeInMsForEachPoint * numberOfPoints;
 
+        console.log("time set to = " + (Date.now() - endTime));
         chrome.storage.sync.set({ "time": Date.now() - endTime }, function(){});
         addHp(numberOfPoints);
     });

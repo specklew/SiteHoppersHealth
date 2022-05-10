@@ -12,5 +12,3 @@ setTimeout(function(){
         console.log(imageSrc);
     });
 }, 100)
-
-//Set the hp bar to display hp stored in chrome storage settings
