@@ -1,16 +1,19 @@
-var health;
-var startTime
-var endTime;
+let health;
 
+//If the app is run for the first time:
 chrome.storage.sync.get(["hp"], function(items){
     health = items.hp;
 });
 
-if(typeof health == 'undefined'){
+if(health === undefined || isNaN(health)){
     health = 100;
+    chrome.storage.sync.set({ "hp": health }, function(){
+    });
 }
 
-//start();
+//If page tab is activated or updated run the code below:
+chrome.tabs.onActivated.addListener(scanTabs);
+chrome.tabs.onUpdated.addListener(scanTabs);
 
 function scanTabs() {
     chrome.tabs.query({ //This method output active URL
@@ -19,8 +22,8 @@ function scanTabs() {
         "status": "complete",
         "windowType": "normal"
     }, function (tabs) {
-        for (tab in tabs) {
-            var parser = document.createElement('a');
+        for (let tab in tabs) {
+            const parser = document.createElement('a');
 
             parser.href = tabs[tab].url;
             console.log(parser.hostname + " hp = " + health);
@@ -35,13 +38,13 @@ function scanTabs() {
     });
 }
 
-// function popupOpened(){
-//     end();
-//     start();
-// }
+//When popup is opened:
+chrome.runtime.onMessage.addListener(function(message, sender, sendResponse){
+    if(message.popupOpen) {
+        console.log("message = " + message);
+    }
+});
 
-chrome.tabs.onActivated.addListener(scanTabs);
-chrome.tabs.onUpdated.addListener(scanTabs);
 // chrome.browserAction.onClicked.addListener(popupOpened);
 
 // function start() {
