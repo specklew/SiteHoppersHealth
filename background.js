@@ -1,15 +1,4 @@
-let health;
-
-//If the app is run for the first time:
-chrome.storage.sync.get(["hp"], function(items){
-    health = items.hp;
-});
-
-if(health === undefined || isNaN(health)){
-    health = 100;
-    chrome.storage.sync.set({ "hp": health }, function(){
-    });
-}
+const timeInMsForEachPoint = 60000;
 
 //If page tab is activated or updated run the code below:
 chrome.tabs.onActivated.addListener(scanTabs);
@@ -26,13 +15,13 @@ function scanTabs() {
             const parser = document.createElement('a');
 
             parser.href = tabs[tab].url;
-            console.log(parser.hostname + " hp = " + health);
+            chrome.storage.sync.get(["hp"], function(items){
+                console.log(parser.hostname + " hp = " + items.hp);
+            });
+
             if(parser.hostname === 'www.facebook.com'){
-                health -= 1;
-                //end();
-                //start();
-                chrome.storage.sync.set({ "hp": health }, function(){
-                });
+                addHp(-1);
+                syncPointsForTime();
             }
         }
     });
@@ -41,23 +30,43 @@ function scanTabs() {
 //When popup is opened:
 chrome.runtime.onMessage.addListener(function(message, sender, sendResponse){
     if(message.popupOpen) {
-        console.log("message = " + message);
+        chrome.storage.sync.get(["time"], function(items){
+            console.log(items.time)});
+        syncPointsForTime();
     }
 });
 
-// chrome.browserAction.onClicked.addListener(popupOpened);
+function syncPointsForTime() {
+    chrome.storage.sync.get(["time"], function(items){
+        let endTime = Date.now();
+        startTime = items.time;
+        if(startTime === undefined || isNaN(startTime) || startTime < 0){
+            chrome.storage.sync.set({ "time": endTime }, function(){});
+            return false;
+        }
+        endTime -= startTime;
+        let numberOfPoints = endTime / timeInMsForEachPoint;
+        numberOfPoints = Math.floor(numberOfPoints);
+        endTime = endTime - timeInMsForEachPoint * numberOfPoints;
 
-// function start() {
-//     startTime = performance.now();
-// };
+        chrome.storage.sync.set({ "time": Date.now() - endTime }, function(){});
+        addHp(numberOfPoints);
+    });
+}
 
-// function end() {
-//     endTime = performance.now();
-//     var timeDiff = endTime - startTime;
+function addHp(addedPoints){
+    let health;
+    chrome.storage.sync.get(["hp"], function(items){
+        health = items.hp;
 
-//     timeDiff /= 1000; // strip the ms
-//     timeDiff /= 10; // from s to min
+        if(health === undefined || isNaN(health)){
+            health = 100;
+        }
 
-//     var minutes = Math.round(timeDiff);
-//     health += minutes;
-// }
+        if(health + addedPoints > 100 || health + addedPoints < 0) return false;
+
+        health += addedPoints;
+
+        chrome.storage.sync.set({ "hp": health }, function(){});
+    });
+}
