@@ -1,22 +1,26 @@
 .container{
     font-size: 10px;
     text-align: center;
-    width: 280px;
-    height: 380px;
-    margin: 5px;
+    width: 300px; /* to adjust!*/
+    height: 325px; /* to adjust!*/
+    margin-top: -5px;
     -webkit-border-radius: 7px; /*rounded corners of the background*/
     padding-bottom: 1rem;
-    background-color: rgba(238, 232, 192, 0.78);
+    background-color: rgba(238, 221, 173, 0.78);
 }
-
 .center{
-    margin: auto;
+    margin-top: -10px;
+    margin-left: 15px;
     width: 60%;
     padding: 10px;
     text-align: center;
+    font-size: 28px;
+    color: white;
 }
+
 /*circle behind the animal*/
 .circle{
+    margin-top: -50px;
     background-color: rgba(95, 183, 99, 0.7);
     width: 240px;
     height: 240px;
