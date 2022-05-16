@@ -1,8 +1,17 @@
 const timeInMsForEachPoint = 60000;
 
 //If page tab is activated or updated run the code below:
-chrome.tabs.onActivated.addListener(scanTabs);
+chrome.tabs.onActiveChanged.addListener(scanTabs);
 chrome.tabs.onUpdated.addListener(scanTabs);
+
+chrome.storage.onChanged.addListener(function (changes, namespace) {
+    for (let [key, { oldValue, newValue }] of Object.entries(changes)) {
+        console.log(
+            `Storage key "${key}" in namespace "${namespace}" changed.`,
+            `Old value was "${oldValue}", new value is "${newValue}".`
+        );
+    }
+});
 
 function scanTabs() {
     chrome.tabs.query({ //This method output active URL
@@ -53,7 +62,6 @@ function syncPointsForTime() {
         numberOfPoints = Math.floor(numberOfPoints);
         endTime = endTime - timeInMsForEachPoint * numberOfPoints;
 
-        console.log("time set to = " + (Date.now() - endTime));
         chrome.storage.sync.set({ "time": Date.now() - endTime }, function(){});
         addHp(numberOfPoints);
     });
@@ -63,14 +71,13 @@ function addHp(addedPoints){
     let health;
     chrome.storage.sync.get(["hp"], function(items){
         health = items.hp;
+        health += addedPoints;
 
-        if(health === undefined || isNaN(health)){
+        if(health === undefined || isNaN(health) || health > 100){
             health = 100;
         }
 
-        if(health + addedPoints > 100 || health + addedPoints < 0) return false;
-
-        health += addedPoints;
+        if(health < 0) health = 0;
 
         chrome.storage.sync.set({ "hp": health }, function(){});
     });
