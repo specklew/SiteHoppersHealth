@@ -1,5 +1,5 @@
 const timeInMsForEachPoint = 60000;
-const timeInMsForPenaltyPoints = 10000;
+const timeInMsForPenaltyPoints = 5000;
 
 //If page tab is activated or updated run the code below:
 chrome.tabs.onActiveChanged.addListener(scanTabs);
@@ -25,20 +25,18 @@ function scanTabs() {
             const parser = document.createElement('a');
 
             parser.href = tabs[tab].url;
-            chrome.storage.sync.get(["hp"], function(items){
-                console.log(parser.hostname + " hp = " + items.hp);
-            });
 
             chrome.storage.sync.get(["blacklist"], function(items) {
                 const blackListedWebsites = items.blacklist;
 
                 if(blackListedWebsites.includes(parser.hostname)){
-                    //addHp(-1);
+                    console.log("Blacklisted website: " + parser.hostname);
                     startPenaltyTimer();
                     syncAdditionalPointsForTime();
                 }
                 else
                 {
+                    console.log("Normal website: " + parser.hostname);
                     stopPenaltyTimer();
                 }
             });
@@ -55,7 +53,14 @@ chrome.runtime.onMessage.addListener(function(message, sender, sendResponse){
 });
 
 function startPenaltyTimer(){
-    chrome.storage.sync.set({"penaltyTime": Date.now()}, function (){});
+    chrome.storage.sync.get(["penaltyTime"], function(items) {
+        
+        let startTime = items.penaltyTime;
+
+        if(startTime === undefined || isNaN(startTime) || startTime <= 0){
+            chrome.storage.sync.set({"penaltyTime": Date.now()}, function () {});
+        }
+    });
 }
 
 function syncPenaltyTimer(){
@@ -63,9 +68,9 @@ function syncPenaltyTimer(){
         let endTime = Date.now();
         let startTime = items.penaltyTime;
 
-        if(startTime === undefined || isNaN(startTime) || startTime < 0){
-            chrome.storage.sync.set({ "penaltyTime": endTime }, function(){});
-            return false;
+        if(startTime === undefined || isNaN(startTime) || startTime <= 0){
+            chrome.storage.sync.set({ "penaltyTime": 0 }, function(){});
+            return;
         }
 
         endTime -= startTime;
@@ -85,7 +90,7 @@ function stopPenaltyTimer(){
 
         if(startTime === undefined || isNaN(startTime) || startTime <= 0){
             chrome.storage.sync.set({ "penaltyTime": 0 }, function(){});
-            return false;
+            return;
         }
 
         endTime -= startTime;
@@ -104,7 +109,7 @@ function syncAdditionalPointsForTime() {
 
         if(startTime === undefined || isNaN(startTime) || startTime < 0){
             chrome.storage.sync.set({ "time": endTime }, function(){});
-            return false;
+            return;
         }
 
         endTime -= startTime;
