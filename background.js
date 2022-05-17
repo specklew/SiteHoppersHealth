@@ -29,6 +29,8 @@ function scanTabs() {
             chrome.storage.sync.get(["blacklist"], function(items) {
                 const blackListedWebsites = items.blacklist;
 
+                if(blackListedWebsites === undefined) return;
+
                 if(blackListedWebsites.includes(parser.hostname)){
                     console.log("Blacklisted website: " + parser.hostname);
                     startPenaltyTimer();
@@ -54,7 +56,7 @@ chrome.runtime.onMessage.addListener(function(message, sender, sendResponse){
 
 function startPenaltyTimer(){
     chrome.storage.sync.get(["penaltyTime"], function(items) {
-        
+
         let startTime = items.penaltyTime;
 
         if(startTime === undefined || isNaN(startTime) || startTime <= 0){

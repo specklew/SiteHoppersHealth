@@ -7,7 +7,9 @@ var hpbar = new ldBar(".healthBar");
 setTimeout(function(){
     chrome.storage.sync.get(["hp"], function(items){
         hpbar.set(items.hp, true);
-        let imageSrc = "images/turtle_example/t" + Math.ceil(10 - (items.hp - 1)/10) + ".png";
+        let imageNum = Math.ceil(10 - (items.hp - 1)/10);
+        if(imageNum <= 0) imageNum = 1;
+        let imageSrc = "images/turtle_example/t" + imageNum + ".png";
         document.getElementById("turtle").src = imageSrc;
         console.log(imageSrc);
     });
