@@ -56,7 +56,7 @@ window.addEventListener('load', () => {
         list_el.appendChild(URL_el);
 
         URL_edit_el.addEventListener('click', (e) => {
-            if (URL_edit_el.innerText.toLowerCase() == "edit") {
+            if (URL_edit_el.innerText.toLowerCase() === "edit") {
                 URL_edit_el.innerText = "Save";
                 URL_input_el.removeAttribute("readonly");
                 URL_input_el.focus();
@@ -68,6 +68,17 @@ window.addEventListener('load', () => {
 
         URL_delete_el.addEventListener('click', (e) => {
             list_el.removeChild(URL_el);
+            chrome.storage.sync.get(["blacklist"], function(items) {
+                let blacklist = items.blacklist;
+                if(blacklist === undefined) blacklist = [];
+                console.log("Trying to delete: " + URL_input_el.value);
+                let index = blacklist.indexOf(URL_input_el.value);
+                console.log(index);
+                if(index !== -1){
+                    blacklist.splice(index, 1);
+                    chrome.storage.sync.set({ "blacklist": blacklist }, function(){});
+                }
+            });
         });
     }
 });
