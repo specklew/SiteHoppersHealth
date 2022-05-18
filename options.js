@@ -4,7 +4,8 @@ window.addEventListener('load', () => {
     const list_el = document.querySelector("#URLs");
 
     chrome.storage.sync.get(["blacklist"], function(items) {
-        const blacklist = items.blacklist;
+        let blacklist = items.blacklist;
+        if(blacklist === undefined) blacklist = [];
         blacklist.forEach(site => addURLToList(site));
     });
 
