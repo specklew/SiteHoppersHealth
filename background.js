@@ -82,6 +82,7 @@ function syncPenaltyTimer(){
 
         chrome.storage.sync.set({ "penaltyTime": Date.now() - endTime }, function(){});
         addHp(-numberOfPoints);
+        chrome.runtime.sendMessage({synced: true});
     });
 }
 
@@ -121,6 +122,7 @@ function syncAdditionalPointsForTime() {
 
         chrome.storage.sync.set({ "time": Date.now() - endTime }, function(){});
         addHp(numberOfPoints);
+        chrome.runtime.sendMessage({synced: true});
     });
 }
 

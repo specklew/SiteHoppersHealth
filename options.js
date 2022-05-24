@@ -1,3 +1,5 @@
+let previousURL;
+
 window.addEventListener('load', () => {
     const form = document.querySelector("#new-URL-form");
     const input = document.querySelector("#new-URL-input");
@@ -57,10 +59,22 @@ window.addEventListener('load', () => {
 
         URL_edit_el.addEventListener('click', (e) => {
             if (URL_edit_el.innerText.toLowerCase() === "edit") {
+                previousURL = URL_input_el.value;
                 URL_edit_el.innerText = "Save";
                 URL_input_el.removeAttribute("readonly");
                 URL_input_el.focus();
             } else {
+                chrome.storage.sync.get(["blacklist"], function(items) {
+                    let blacklist = items.blacklist;
+                    if (blacklist === undefined) blacklist = [];
+                    console.log("Trying to edit: " + previousURL);
+                    let index = blacklist.indexOf(previousURL);
+                    console.log(index);
+                    if(index !== -1){
+                        blacklist[index] = URL_input_el.value;
+                        chrome.storage.sync.set({ "blacklist": blacklist }, function(){});
+                    }
+                });
                 URL_edit_el.innerText = "Edit";
                 URL_input_el.setAttribute("readonly", "readonly");
             }
