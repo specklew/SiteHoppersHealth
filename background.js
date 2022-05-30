@@ -135,6 +135,45 @@ function addHp(addedPoints){
         if(health === undefined || isNaN(health) || health > 100){
             health = 100;
         }
+        if(health%5===0)
+
+            (async () => {
+                // create and show the notification
+                const showNotification = () => {
+                    // create a new notification
+                    const notification = new Notification('JavaScript Notification API', {
+                        body: 'Hey man, stop, you just loose 5hp!!!'
+                    });
+
+                    // close the notification after 10 seconds
+                    setTimeout(() => {
+                        notification.close();
+                    }, 10 * 1000);
+
+                    // navigate to a URL when clicke
+                }
+
+                // show an error message
+                const showError = () => {
+                    const error = document.querySelector('.error');
+                    error.style.display = 'block';
+                    error.textContent = 'You blocked the notifications';
+                }
+
+                // check notification permission
+                let granted = false;
+
+                if (Notification.permission === 'granted') {
+                    granted = true;
+                } else if (Notification.permission !== 'denied') {
+                    let permission = await Notification.requestPermission();
+                    granted = permission === 'granted';
+                }
+
+                // show notification or error
+                granted ? showNotification() : showError();
+
+            })();
 
         if(health < 0) health = 0;
 
