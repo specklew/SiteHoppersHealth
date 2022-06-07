@@ -18,5 +18,6 @@
     "permissions": [
         "declarativeContent",
         "tabs",
-        "storage"]
+        "storage",
+        "notifications"]
 }
