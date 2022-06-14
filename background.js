@@ -1,7 +1,7 @@
 const options = {
     timeInMsForEachPoint: 60000,
-    timeInMsForPenaltyPoints: 5000,
-    timeBetweenSync: 10000,
+    timeInMsForPenaltyPoints: 10000,
+    timeBetweenSync: 5000,
     iconUrl: "images/128_icon.png"
 };
 
