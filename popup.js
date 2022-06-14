@@ -20,9 +20,7 @@ function updatePopup(){
             let imageNum = Math.ceil(10 - (items.hp - 1)/10);
             if(imageNum >= 11) imageNum = 10;
             if(imageNum <= 0) imageNum = 1;
-            let imageSrc = items2.pet + imageNum + ".png";
-
-            document.getElementById("turtle").src = imageSrc;
+            document.getElementById("turtle").src = items2.pet + imageNum + ".png";
         });
     });
 }

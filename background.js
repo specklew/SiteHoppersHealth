@@ -71,32 +71,39 @@ function syncHp(){
         if(items.dead === false){
             syncAdditionalPointsForTime();
             syncPenaltyTimer();
+
+            chrome.storage.sync.get(["hp"], function(items) {
+                let hp = items.hp;
+
+                if(hpStage !== 0 && hp > 75){
+                    setHpStageBasedOnHp(hp);
+                }
+                if(hpStage <= 0 && hp < 75){
+                    printStageNotification(hp);
+                    setHpStageBasedOnHp(hp);
+                }
+                if(hpStage <= 1 && hp < 50){
+                    printStageNotification(hp);
+                    setHpStageBasedOnHp(hp);
+                }
+                if(hpStage <= 2 && hp < 25){
+                    printStageNotification(hp);
+                    setHpStageBasedOnHp(hp);
+                }
+                if(hpStage <= 3 && hp <= 0){
+                    killThePet();
+                    setHpStageBasedOnHp(hp);
+                }
+            });
+
+        } else {
+
+            waitToReviveThePet();
+
         }
     });
 
-    chrome.storage.sync.get(["hp"], function(items) {
-        let hp = items.hp;
 
-        if(hpStage !== 0 && hp > 75){
-            setHpStageBasedOnHp(hp);
-        }
-        if(hpStage <= 0 && hp < 75){
-            printStageNotification(hp);
-            setHpStageBasedOnHp(hp);
-        }
-        if(hpStage <= 1 && hp < 50){
-            printStageNotification(hp);
-            setHpStageBasedOnHp(hp);
-        }
-        if(hpStage <= 2 && hp < 25){
-            printStageNotification(hp);
-            setHpStageBasedOnHp(hp);
-        }
-        if(hpStage <= 3 && hp <= 0){
-            killThePet();
-            setHpStageBasedOnHp(hp);
-        }
-    });
 }
 
 function setHpStageBasedOnHp(hp){
@@ -184,7 +191,7 @@ function stopPenaltyTimer(){
         }
         endTime -= startTime;
 
-        let penaltyPoints = Math.floor(endTime / timeInMsForPenaltyPoints);
+        let penaltyPoints = Math.floor(endTime / options.timeInMsForPenaltyPoints);
 
         chrome.storage.sync.set({ "penaltyTime": 0 }, function(){});
         addHp(-penaltyPoints);
@@ -212,6 +219,30 @@ function syncAdditionalPointsForTime() {
     });
 }
 
+function waitToReviveThePet(){
+    chrome.storage.sync.get(["time"], function(items){
+        let endTime = Date.now();
+        let startTime = items.time;
+
+        if(startTime === undefined || isNaN(startTime) || startTime < 0){
+            chrome.storage.sync.set({ "time": endTime }, function(){});
+            return;
+        }
+
+        endTime -= startTime;
+        let numberOfPoints = endTime / options.timeInMsForEachPoint;
+        numberOfPoints = Math.floor(numberOfPoints);
+
+        console.log("Waiting to revive with addhp = " + numberOfPoints);
+
+        if(numberOfPoints >= 100){
+            addHp(numberOfPoints);
+            chrome.storage.sync.set({"dead": false}, function () {});
+        }
+        chrome.runtime.sendMessage({synced: true});
+    });
+}
+
 function addHp(addedPoints) {
     let health;
     chrome.storage.sync.get(["hp"], function (items) {
@@ -224,8 +255,7 @@ function addHp(addedPoints) {
 
         if (health < 0) health = 0;
 
-        chrome.storage.sync.set({"hp": health}, function () {
-        });
+        chrome.storage.sync.set({"hp": health}, function () {});
     });
 }
 
