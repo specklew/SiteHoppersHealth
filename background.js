@@ -1,13 +1,15 @@
-const timeInMsForEachPoint = 60000;
-const timeInMsForPenaltyPoints = 5000;
-const notificationPopupDuration = 10000;
-const timeBetweenSync = 10000;
+const options = {
+    timeInMsForEachPoint: 60000,
+    timeInMsForPenaltyPoints: 5000,
+    timeBetweenSync: 10000,
+    iconUrl: "images/128_icon.png"
+};
 
 let hpStage = 0;
 
 //Check hp every couple of seconds:
 
-setInterval(syncHp, timeBetweenSync)
+setInterval(syncHp, options.timeBetweenSync)
 
 //If page tab is activated or updated run the code below:
 chrome.tabs.onActiveChanged.addListener(scanTabs);
@@ -23,6 +25,14 @@ chrome.storage.onChanged.addListener(function (changes, namespace) {
 });
 
 chrome.storage.sync.get(["hp"], function(items) {setHpStageBasedOnHp(items.hp)});
+
+//When popup is opened:
+
+chrome.runtime.onMessage.addListener(function(message, sender, sendResponse){
+    if(message.popupOpen) {
+        syncHp();
+    }
+});
 
 function scanTabs() {
     chrome.tabs.query({ //This method output active URL
@@ -44,7 +54,13 @@ function scanTabs() {
                 if(blackListedWebsites.includes(parser.hostname)){
                     console.log("Blacklisted website: " + parser.hostname);
                     startPenaltyTimer();
-                    syncAdditionalPointsForTime();
+                    clearPageFromContent(tabs[tab]);
+
+/*                    chrome.storage.sync.get(["dead"], function(items) {
+                        if(items.dead === true){
+                            clearPageFromContent();
+                        }
+                    });*/
                 }
                 else
                 {
@@ -56,17 +72,14 @@ function scanTabs() {
     });
 }
 
-//When popup is opened:
-chrome.runtime.onMessage.addListener(function(message, sender, sendResponse){
-    if(message.popupOpen) {
-        syncHp();
-    }
-});
-
-
 function syncHp(){
-    syncAdditionalPointsForTime();
-    syncPenaltyTimer();
+
+    chrome.storage.sync.get(["dead"], function(items) {
+        if(items.dead === false){
+            syncAdditionalPointsForTime();
+            syncPenaltyTimer();
+        }
+    });
 
     chrome.storage.sync.get(["hp"], function(items) {
         let hp = items.hp;
@@ -74,17 +87,20 @@ function syncHp(){
         if(hpStage !== 0 && hp > 75){
             setHpStageBasedOnHp(hp);
         }
-
         if(hpStage <= 0 && hp < 75){
-            printNotification(hp);
+            printStageNotification(hp);
             setHpStageBasedOnHp(hp);
         }
         if(hpStage <= 1 && hp < 50){
-            printNotification(hp);
+            printStageNotification(hp);
             setHpStageBasedOnHp(hp);
         }
         if(hpStage <= 2 && hp < 25){
-            printNotification(hp);
+            printStageNotification(hp);
+            setHpStageBasedOnHp(hp);
+        }
+        if(hpStage <= 3 && hp <= 0){
+            killThePet();
             setHpStageBasedOnHp(hp);
         }
     });
@@ -97,63 +113,39 @@ function setHpStageBasedOnHp(hp){
         hpStage = 1;
     } else if(hp >= 25){
         hpStage = 2;
-    } else {
+    } else if(hp >= 0) {
         hpStage = 3;
+    } else {
+        hpStage = 0;
     }
     console.log("Hp stage set to " + hpStage);
 }
 
-function printNotification(hp){
+function printStageNotification(hp){
 
-    console.log("Creating a notification...");
+    printNotification("Pet losing hp!", "Yours pet hp is now: " + hp);
+
+}
+
+function printNotification(title, message){
+
+    console.log("Printing a notification...");
 
     var opt = {
         type: "basic",
-        title: "Pet losing hp!",
-        message: "Yours pet hp is now: " + hp,
-        iconUrl: "images/128_icon.png"
-    }
+        title: title,
+        message: message,
+        iconUrl: options.iconUrl
+    };
 
-    chrome.notifications.create('hp_notification', opt, function (){})
+    chrome.notifications.create('hp_notification', opt, function (){});
+}
 
-/*    (async () => {
-        console.log("The notification is being displayed!");
-        // create and show the notification
-        const showNotification = () => {
-            // create a new notification
-            const notification = new Notification('JavaScript Notification API', {
-                body: "Hey man, stop, you're hurting me! My hp is now: " + hp + "!!"
-            });
+//Kinda grim to think about it...
+function killThePet(){
 
-            // close the notification after 10 seconds
-            setTimeout(() => {
-                notification.close();
-            }, notificationPopupDuration);
-
-            // navigate to a URL when clicke
-        }
-
-        // show an error message
-        const showError = () => {
-            const error = document.querySelector('.error');
-            error.style.display = 'block';
-            error.textContent = 'You blocked the notifications';
-        }
-
-        // check notification permission
-        let granted = false;
-
-        if (Notification.permission === 'granted') {
-            granted = true;
-        } else if (Notification.permission !== 'denied') {
-            let permission = await Notification.requestPermission();
-            granted = permission === 'granted';
-        }
-
-        // show notification or error
-        granted ? showNotification() : showError();
-
-    })();*/
+    printNotification("Your pet died!", "No more blacklisted sites!")
+    chrome.storage.sync.set({ "dead": true }, function(){});
 }
 
 function startPenaltyTimer(){
@@ -178,8 +170,8 @@ function syncPenaltyTimer(){
         }
         endTime -= startTime;
 
-        let numberOfPoints = Math.floor(endTime / timeInMsForPenaltyPoints);
-        endTime = endTime - timeInMsForPenaltyPoints * numberOfPoints;
+        let numberOfPoints = Math.floor(endTime / options.timeInMsForPenaltyPoints);
+        endTime = endTime - options.timeInMsForPenaltyPoints * numberOfPoints;
 
         chrome.storage.sync.set({ "penaltyTime": Date.now() - endTime }, function(){});
         addHp(-numberOfPoints);
@@ -199,22 +191,11 @@ function stopPenaltyTimer(){
         }
         endTime -= startTime;
 
-        let penaltyPoints = Math.floor(endTime / timeInMsForPenaltyPoints);
+        let penaltyPoints = Math.floor(endTime / options.timeInMsForPenaltyPoints);
 
         chrome.storage.sync.set({ "penaltyTime": 0 }, function(){});
         addHp(-penaltyPoints);
     });
-}
-
-function calculatePenaltyPoints(startTime, endTime){
-
-    if(startTime === undefined || isNaN(startTime) || startTime <= 0){
-        chrome.storage.sync.set({ "penaltyTime": 0 }, function(){});
-        return;
-    }
-    endTime -= startTime;
-
-    return Math.floor(endTime / timeInMsForPenaltyPoints);
 }
 
 function syncAdditionalPointsForTime() {
@@ -228,9 +209,9 @@ function syncAdditionalPointsForTime() {
         }
 
         endTime -= startTime;
-        let numberOfPoints = endTime / timeInMsForEachPoint;
+        let numberOfPoints = endTime / options.timeInMsForEachPoint;
         numberOfPoints = Math.floor(numberOfPoints);
-        endTime = endTime - timeInMsForEachPoint * numberOfPoints;
+        endTime = endTime - options.timeInMsForEachPoint * numberOfPoints;
 
         chrome.storage.sync.set({ "time": Date.now() - endTime }, function(){});
         addHp(numberOfPoints);
@@ -252,4 +233,30 @@ function addHp(addedPoints){
 
         chrome.storage.sync.set({ "hp": health }, function(){});
     });
+}
+
+function clearPageFromContent(tab){
+    console.log("Overlay added.");
+
+    const overlay = document.createElement("div");
+    overlay.setAttribute(
+        'style',
+        '{\n' +
+        '  position: fixed; /* Sit on top of the page content */\n' +
+        '  display: none; /* Hidden by default */\n' +
+        '  width: 100%; /* Full width (cover the whole page) */\n' +
+        '  height: 100%; /* Full height (cover the whole page) */\n' +
+        '  top: 0;\n' +
+        '  left: 0;\n' +
+        '  right: 0;\n' +
+        '  bottom: 0;\n' +
+        '  background-color: rgba(0,0,0,0.5); /* Black background with opacity */\n' +
+        '  z-index: 2; /* Specify a stack order in case you\'re using a different order for other elements */\n' +
+        '  cursor: pointer; /* Add a pointer on hover */\n' +
+        '}'
+    )
+
+    console.log(tab);
+    document.body.appendChild(overlay);
+
 }

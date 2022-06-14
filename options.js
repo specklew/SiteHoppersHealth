@@ -1,8 +1,8 @@
 let previousURL;
 
 window.addEventListener('load', () => {
-    const form = document.querySelector("#new-URL-form");
-    const input = document.querySelector("#new-URL-input");
+    const url_form = document.querySelector("#new-URL-form");
+    const url_input = document.querySelector("#new-URL-input");
     const list_el = document.querySelector("#URLs");
 
     chrome.storage.sync.get(["blacklist"], function(items) {
@@ -11,15 +11,15 @@ window.addEventListener('load', () => {
         blacklist.forEach(site => addURLToList(site));
     });
 
-    form.addEventListener('submit', (e) => {
+    url_form.addEventListener('submit', (e) => {
         e.preventDefault();
 
-        const inputVal = input.value;
+        const inputVal = url_input.value;
 
         addURLToList(inputVal);
         addToChromeBlacklist(inputVal);
 
-        input.value = '';
+        url_input.value = '';
     });
 
     function addURLToList(URL){
@@ -95,6 +95,23 @@ window.addEventListener('load', () => {
             });
         });
     }
+
+    //Pet selection
+
+    const pet_form = document.querySelector("#pet-selection-form");
+
+    pet_form.addEventListener('submit', (e) => {
+        e.preventDefault();
+
+        let checkboxes = document.querySelectorAll('input[name="flexRadioDefault"]:checked');
+        let output = [];
+
+        checkboxes.forEach((checkbox) => {
+            output.push(checkbox.value);
+        });
+
+        chrome.storage.sync.set({"pet": output}, function () {});
+    });
 });
 
 function addToChromeBlacklist(URL){
