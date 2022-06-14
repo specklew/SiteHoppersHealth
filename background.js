@@ -7,8 +7,10 @@ const options = {
 
 let hpStage = 0;
 
-//Check hp every couple of seconds:
+//Chrome storage variables.
+initializeAllVariables();
 
+//Check hp every couple of seconds:
 setInterval(syncHp, options.timeBetweenSync)
 
 //If page tab is activated or updated run the code below:
@@ -23,8 +25,6 @@ chrome.storage.onChanged.addListener(function (changes, namespace) {
         );
     }
 });
-
-chrome.storage.sync.get(["hp"], function(items) {setHpStageBasedOnHp(items.hp)});
 
 //When popup is opened:
 
@@ -54,13 +54,6 @@ function scanTabs() {
                 if(blackListedWebsites.includes(parser.hostname)){
                     console.log("Blacklisted website: " + parser.hostname);
                     startPenaltyTimer();
-                    clearPageFromContent(tabs[tab]);
-
-/*                    chrome.storage.sync.get(["dead"], function(items) {
-                        if(items.dead === true){
-                            clearPageFromContent();
-                        }
-                    });*/
                 }
                 else
                 {
@@ -191,7 +184,7 @@ function stopPenaltyTimer(){
         }
         endTime -= startTime;
 
-        let penaltyPoints = Math.floor(endTime / options.timeInMsForPenaltyPoints);
+        let penaltyPoints = Math.floor(endTime / timeInMsForPenaltyPoints);
 
         chrome.storage.sync.set({ "penaltyTime": 0 }, function(){});
         addHp(-penaltyPoints);
@@ -219,9 +212,9 @@ function syncAdditionalPointsForTime() {
     });
 }
 
-function addHp(addedPoints){
+function addHp(addedPoints) {
     let health;
-    chrome.storage.sync.get(["hp"], function(items) {
+    chrome.storage.sync.get(["hp"], function (items) {
         health = items.hp;
         health += addedPoints;
 
@@ -229,34 +222,37 @@ function addHp(addedPoints){
             health = 100;
         }
 
-        if(health < 0) health = 0;
+        if (health < 0) health = 0;
 
-        chrome.storage.sync.set({ "hp": health }, function(){});
+        chrome.storage.sync.set({"hp": health}, function () {
+        });
     });
 }
 
-function clearPageFromContent(tab){
-    console.log("Overlay added.");
+function initializeAllVariables(){
 
-    const overlay = document.createElement("div");
-    overlay.setAttribute(
-        'style',
-        '{\n' +
-        '  position: fixed; /* Sit on top of the page content */\n' +
-        '  display: none; /* Hidden by default */\n' +
-        '  width: 100%; /* Full width (cover the whole page) */\n' +
-        '  height: 100%; /* Full height (cover the whole page) */\n' +
-        '  top: 0;\n' +
-        '  left: 0;\n' +
-        '  right: 0;\n' +
-        '  bottom: 0;\n' +
-        '  background-color: rgba(0,0,0,0.5); /* Black background with opacity */\n' +
-        '  z-index: 2; /* Specify a stack order in case you\'re using a different order for other elements */\n' +
-        '  cursor: pointer; /* Add a pointer on hover */\n' +
-        '}'
-    )
+    chrome.storage.sync.get(["hp"], function(items) {
+        if(items.hp === undefined || isNaN(items.hp) || items.hp > 100) {
+            chrome.storage.sync.set({"hp": 100}, function () {});
+        }
+        setHpStageBasedOnHp(items.hp);
+    });
 
-    console.log(tab);
-    document.body.appendChild(overlay);
+    chrome.storage.sync.get(["time"], function(items) {
+        if(items.time === undefined || isNaN(items.time)){
+            chrome.storage.sync.set({"time": Date.now()}, function () {});
+        }
+    });
 
+    chrome.storage.sync.get(["penaltyTime"], function(items) {
+        if(items.penaltyTime === undefined || isNaN(items.penaltyTime)){
+            chrome.storage.sync.set({"penaltyTime": 0}, function () {});
+        }
+    });
+
+    chrome.storage.sync.get(["pet"], function(items) {
+        if(items.pet === undefined || isNaN(items.pet)){
+            chrome.storage.sync.set({"pet": "images/turtle_example/t"}, function () {});
+        }
+    });
 }
