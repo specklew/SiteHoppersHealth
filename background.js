@@ -1,13 +1,17 @@
-const timeInMsForEachPoint = 60000;
-const timeInMsForPenaltyPoints = 5000;
-const notificationPopupDuration = 10000;
-const timeBetweenSync = 10000;
+const options = {
+    timeInMsForEachPoint: 60000,
+    timeInMsForPenaltyPoints: 10000,
+    timeBetweenSync: 5000,
+    iconUrl: "images/128_icon.png"
+};
 
 let hpStage = 0;
 
-//Check hp every couple of seconds:
+//Chrome storage variables.
+initializeAllVariables();
 
-setInterval(syncHp, timeBetweenSync)
+//Check hp every couple of seconds:
+setInterval(syncHp, options.timeBetweenSync)
 
 //If page tab is activated or updated run the code below:
 chrome.tabs.onActiveChanged.addListener(scanTabs);
@@ -22,7 +26,13 @@ chrome.storage.onChanged.addListener(function (changes, namespace) {
     }
 });
 
-chrome.storage.sync.get(["hp"], function(items) {setHpStageBasedOnHp(items.hp)});
+//When popup is opened:
+
+chrome.runtime.onMessage.addListener(function(message, sender, sendResponse){
+    if(message.popupOpen) {
+        syncHp();
+    }
+});
 
 function scanTabs() {
     chrome.tabs.query({ //This method output active URL
@@ -44,7 +54,6 @@ function scanTabs() {
                 if(blackListedWebsites.includes(parser.hostname)){
                     console.log("Blacklisted website: " + parser.hostname);
                     startPenaltyTimer();
-                    syncAdditionalPointsForTime();
                 }
                 else
                 {
@@ -56,38 +65,45 @@ function scanTabs() {
     });
 }
 
-//When popup is opened:
-chrome.runtime.onMessage.addListener(function(message, sender, sendResponse){
-    if(message.popupOpen) {
-        syncHp();
-    }
-});
-
-
 function syncHp(){
-    syncAdditionalPointsForTime();
-    syncPenaltyTimer();
 
-    chrome.storage.sync.get(["hp"], function(items) {
-        let hp = items.hp;
+    chrome.storage.sync.get(["dead"], function(items) {
+        if(items.dead === false){
+            syncAdditionalPointsForTime();
+            syncPenaltyTimer();
 
-        if(hpStage !== 0 && hp > 75){
-            setHpStageBasedOnHp(hp);
-        }
+            chrome.storage.sync.get(["hp"], function(items) {
+                let hp = items.hp;
 
-        if(hpStage <= 0 && hp < 75){
-            printNotification(hp);
-            setHpStageBasedOnHp(hp);
-        }
-        if(hpStage <= 1 && hp < 50){
-            printNotification(hp);
-            setHpStageBasedOnHp(hp);
-        }
-        if(hpStage <= 2 && hp < 25){
-            printNotification(hp);
-            setHpStageBasedOnHp(hp);
+                if(hpStage !== 0 && hp > 75){
+                    setHpStageBasedOnHp(hp);
+                }
+                if(hpStage <= 0 && hp < 75){
+                    printStageNotification(hp);
+                    setHpStageBasedOnHp(hp);
+                }
+                if(hpStage <= 1 && hp < 50){
+                    printStageNotification(hp);
+                    setHpStageBasedOnHp(hp);
+                }
+                if(hpStage <= 2 && hp < 25){
+                    printStageNotification(hp);
+                    setHpStageBasedOnHp(hp);
+                }
+                if(hpStage <= 3 && hp <= 0){
+                    killThePet();
+                    setHpStageBasedOnHp(hp);
+                }
+            });
+
+        } else {
+
+            waitToReviveThePet();
+
         }
     });
+
+
 }
 
 function setHpStageBasedOnHp(hp){
@@ -97,63 +113,39 @@ function setHpStageBasedOnHp(hp){
         hpStage = 1;
     } else if(hp >= 25){
         hpStage = 2;
-    } else {
+    } else if(hp >= 0) {
         hpStage = 3;
+    } else {
+        hpStage = 0;
     }
     console.log("Hp stage set to " + hpStage);
 }
 
-function printNotification(hp){
+function printStageNotification(hp){
 
-    console.log("Creating a notification...");
+    printNotification("Pet losing hp!", "Yours pet hp is now: " + hp);
+
+}
+
+function printNotification(title, message){
+
+    console.log("Printing a notification...");
 
     var opt = {
         type: "basic",
-        title: "Pet losing hp!",
-        message: "Yours pet hp is now: " + hp,
-        iconUrl: "images/128_icon.png"
-    }
+        title: title,
+        message: message,
+        iconUrl: options.iconUrl
+    };
 
-    chrome.notifications.create('hp_notification', opt, function (){})
+    chrome.notifications.create('hp_notification', opt, function (){});
+}
 
-/*    (async () => {
-        console.log("The notification is being displayed!");
-        // create and show the notification
-        const showNotification = () => {
-            // create a new notification
-            const notification = new Notification('JavaScript Notification API', {
-                body: "Hey man, stop, you're hurting me! My hp is now: " + hp + "!!"
-            });
+//Kinda grim to think about it...
+function killThePet(){
 
-            // close the notification after 10 seconds
-            setTimeout(() => {
-                notification.close();
-            }, notificationPopupDuration);
-
-            // navigate to a URL when clicke
-        }
-
-        // show an error message
-        const showError = () => {
-            const error = document.querySelector('.error');
-            error.style.display = 'block';
-            error.textContent = 'You blocked the notifications';
-        }
-
-        // check notification permission
-        let granted = false;
-
-        if (Notification.permission === 'granted') {
-            granted = true;
-        } else if (Notification.permission !== 'denied') {
-            let permission = await Notification.requestPermission();
-            granted = permission === 'granted';
-        }
-
-        // show notification or error
-        granted ? showNotification() : showError();
-
-    })();*/
+    printNotification("Your pet died!", "No more blacklisted sites!")
+    chrome.storage.sync.set({ "dead": true }, function(){});
 }
 
 function startPenaltyTimer(){
@@ -178,8 +170,8 @@ function syncPenaltyTimer(){
         }
         endTime -= startTime;
 
-        let numberOfPoints = Math.floor(endTime / timeInMsForPenaltyPoints);
-        endTime = endTime - timeInMsForPenaltyPoints * numberOfPoints;
+        let numberOfPoints = Math.floor(endTime / options.timeInMsForPenaltyPoints);
+        endTime = endTime - options.timeInMsForPenaltyPoints * numberOfPoints;
 
         chrome.storage.sync.set({ "penaltyTime": Date.now() - endTime }, function(){});
         addHp(-numberOfPoints);
@@ -199,22 +191,11 @@ function stopPenaltyTimer(){
         }
         endTime -= startTime;
 
-        let penaltyPoints = Math.floor(endTime / timeInMsForPenaltyPoints);
+        let penaltyPoints = Math.floor(endTime / options.timeInMsForPenaltyPoints);
 
         chrome.storage.sync.set({ "penaltyTime": 0 }, function(){});
         addHp(-penaltyPoints);
     });
-}
-
-function calculatePenaltyPoints(startTime, endTime){
-
-    if(startTime === undefined || isNaN(startTime) || startTime <= 0){
-        chrome.storage.sync.set({ "penaltyTime": 0 }, function(){});
-        return;
-    }
-    endTime -= startTime;
-
-    return Math.floor(endTime / timeInMsForPenaltyPoints);
 }
 
 function syncAdditionalPointsForTime() {
@@ -228,9 +209,9 @@ function syncAdditionalPointsForTime() {
         }
 
         endTime -= startTime;
-        let numberOfPoints = endTime / timeInMsForEachPoint;
+        let numberOfPoints = endTime / options.timeInMsForEachPoint;
         numberOfPoints = Math.floor(numberOfPoints);
-        endTime = endTime - timeInMsForEachPoint * numberOfPoints;
+        endTime = endTime - options.timeInMsForEachPoint * numberOfPoints;
 
         chrome.storage.sync.set({ "time": Date.now() - endTime }, function(){});
         addHp(numberOfPoints);
@@ -238,9 +219,33 @@ function syncAdditionalPointsForTime() {
     });
 }
 
-function addHp(addedPoints){
+function waitToReviveThePet(){
+    chrome.storage.sync.get(["time"], function(items){
+        let endTime = Date.now();
+        let startTime = items.time;
+
+        if(startTime === undefined || isNaN(startTime) || startTime < 0){
+            chrome.storage.sync.set({ "time": endTime }, function(){});
+            return;
+        }
+
+        endTime -= startTime;
+        let numberOfPoints = endTime / options.timeInMsForEachPoint;
+        numberOfPoints = Math.floor(numberOfPoints);
+
+        console.log("Waiting to revive with addhp = " + numberOfPoints);
+
+        if(numberOfPoints >= 100){
+            addHp(numberOfPoints);
+            chrome.storage.sync.set({"dead": false}, function () {});
+        }
+        chrome.runtime.sendMessage({synced: true});
+    });
+}
+
+function addHp(addedPoints) {
     let health;
-    chrome.storage.sync.get(["hp"], function(items) {
+    chrome.storage.sync.get(["hp"], function (items) {
         health = items.hp;
         health += addedPoints;
 
@@ -248,8 +253,36 @@ function addHp(addedPoints){
             health = 100;
         }
 
-        if(health < 0) health = 0;
+        if (health < 0) health = 0;
 
-        chrome.storage.sync.set({ "hp": health }, function(){});
+        chrome.storage.sync.set({"hp": health}, function () {});
+    });
+}
+
+function initializeAllVariables(){
+
+    chrome.storage.sync.get(["hp"], function(items) {
+        if(items.hp === undefined || isNaN(items.hp) || items.hp > 100) {
+            chrome.storage.sync.set({"hp": 100}, function () {});
+        }
+        setHpStageBasedOnHp(items.hp);
+    });
+
+    chrome.storage.sync.get(["time"], function(items) {
+        if(items.time === undefined || isNaN(items.time)){
+            chrome.storage.sync.set({"time": Date.now()}, function () {});
+        }
+    });
+
+    chrome.storage.sync.get(["penaltyTime"], function(items) {
+        if(items.penaltyTime === undefined || isNaN(items.penaltyTime)){
+            chrome.storage.sync.set({"penaltyTime": 0}, function () {});
+        }
+    });
+
+    chrome.storage.sync.get(["pet"], function(items) {
+        if(items.pet === undefined || isNaN(items.pet)){
+            chrome.storage.sync.set({"pet": "images/turtle_example/t"}, function () {});
+        }
     });
 }
